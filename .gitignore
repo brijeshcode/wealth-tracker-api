@@ -1,0 +1,50 @@
+# Dependencies
+/vendor
+/node_modules
+
+# Environment
+.env
+.env.backup
+.env.production
+/auth.json
+
+# Generated files
+/storage/api-docs
+/storage/*.key
+/storage/pail
+/public/build
+/public/hot
+/public/storage
+/public/fonts-manifest.dev.json
+.phpunit.result.cache
+/.phpunit.cache
+
+# IDE / editor
+/.idea
+/.vscode
+/.cursor/
+/.zed
+/.nova
+/.codex
+.phpactor.json
+_ide_helper.php
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vagrant
+Homestead.json
+Homestead.yaml
+
+# Local Windows dev shims (not needed in repo)
+php.bat
+composer.bat
+pest.bat
+CLAUDE.md
+
+# Claude memory (local only)
+/memory
+
+# Local docs / planning notes (architecture.md is the source of truth)
+/docs
