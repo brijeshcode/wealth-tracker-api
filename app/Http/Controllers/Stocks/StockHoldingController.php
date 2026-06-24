@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Stocks;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Stocks\StockHoldingResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Stocks\StockHolding;
 use App\Services\Stocks\HoldingsCalculator;
@@ -19,7 +20,7 @@ class StockHoldingController extends Controller
         $holdings = StockHolding::with(['holding.platform', 'stock.latestPrice'])
             ->get();
 
-        return ApiResponse::index('Stock holdings retrieved', $holdings);
+        return ApiResponse::index('Stock holdings retrieved', StockHoldingResource::collection($holdings));
     }
 
     public function show(StockHolding $stockHolding): JsonResponse

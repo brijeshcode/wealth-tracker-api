@@ -28,6 +28,12 @@ class DatabaseSeeder extends Seeder
             'role'  => 'user',
         ]);
 
+        User::factory()->create([
+            'name'  => 'Brijesh Chaturvedi',
+            'email' => 'brijesh@wealth.com',
+            'role'  => 'user',
+        ]);
+
         $this->call([
             PlatformSeeder::class,
             StockSeeder::class,
