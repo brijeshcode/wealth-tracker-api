@@ -20,8 +20,10 @@ class StockTransactionController extends Controller
         private FifoService $fifo,
     ) {}
 
-    public function index(StockHolding $stockHolding): JsonResponse
+    public function index(Request $request, StockHolding $stockHolding): JsonResponse
     {
+        abort_if($stockHolding->user_id !== $request->user()->id, 403);
+
         $transactions = $stockHolding->transactions()
             ->orderByDesc('transaction_date')
             ->get();
@@ -104,6 +106,28 @@ class StockTransactionController extends Controller
                     $this->fifo->restoreLots($stockHolding, $oldQty);
                     $this->fifo->consumeLots($stockHolding, $newQty);
                 }
+            } elseif ($transaction->type === 'buy' && isset($validated['quantity'])) {
+                $oldQty = (float) $transaction->quantity;
+                $newQty = (float) $validated['quantity'];
+
+                if ($oldQty !== $newQty) {
+                    $lot = $transaction->lot;
+                    if ($lot) {
+                        $consumed   = $oldQty - (float) $lot->quantity_remaining;
+                        $newRemaining = $newQty - $consumed;
+
+                        abort_if(
+                            $newRemaining < 0,
+                            422,
+                            "Cannot reduce buy quantity below already sold amount ({$consumed} units already consumed)."
+                        );
+
+                        $lot->update([
+                            'quantity_remaining' => $newRemaining,
+                            'is_exhausted'       => $newRemaining <= 0,
+                        ]);
+                    }
+                }
             }
 
             $transaction->update($validated);
@@ -117,6 +141,18 @@ class StockTransactionController extends Controller
     {
         $stockHolding = $transaction->stockHolding()->withoutGlobalScopes()->firstOrFail();
         abort_if($stockHolding->user_id !== $request->user()->id, 403);
+
+        if ($transaction->type === 'buy') {
+            $lot = $transaction->lot;
+            if ($lot) {
+                $consumed = (float) $transaction->quantity - (float) $lot->quantity_remaining;
+                abort_if(
+                    $consumed > 0,
+                    422,
+                    "Cannot delete a buy transaction that has already been partially or fully sold ({$consumed} units consumed)."
+                );
+            }
+        }
 
         DB::transaction(function () use ($transaction, $stockHolding) {
             if ($transaction->type === 'sell') {

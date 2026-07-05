@@ -14,8 +14,6 @@ class HoldingsCalculator
      */
     public function sync(StockHolding $holding): void
     {
-        $holding->loadMissing('transactions');
-
         $qty = 0.0;
         $avg = 0.0;
 

@@ -39,9 +39,7 @@ class FifoService
 
         $available = $lots->sum('quantity_remaining');
         if ($available < $sellQty) {
-            throw new \RuntimeException(
-                "Insufficient quantity. Available: {$available}, attempted sell: {$sellQty}."
-            );
+            abort(422, "Insufficient quantity. Available: {$available}, attempted sell: {$sellQty}.");
         }
 
         $remaining = $sellQty;
@@ -80,6 +78,7 @@ class FifoService
                     ->whereColumn('stock_transactions.id', 'stock_lots.buy_transaction_id')
                     ->limit(1)
             )
+            ->lockForUpdate()
             ->get();
 
         $remaining = $restoreQty;
