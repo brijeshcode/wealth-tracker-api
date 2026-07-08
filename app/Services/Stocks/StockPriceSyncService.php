@@ -85,7 +85,7 @@ class StockPriceSyncService
         $ticker = strtoupper($symbol) . '.NS';
         $url    = "https://query1.finance.yahoo.com/v8/finance/chart/{$ticker}?interval=1d&range=5d";
 
-        $response = Http::withHeaders([
+        $response = Http::withoutVerifying()->withHeaders([
             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept'     => 'application/json',
         ])->timeout(10)->get($url);
