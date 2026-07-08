@@ -9,7 +9,7 @@ use App\Services\Stocks\StockPriceRollupService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 
-it('skips weekends and does not call NSE', function () {
+it('skips weekends and does not call Yahoo Finance', function () {
     Http::fake();
 
     $saturday = Carbon::parse('2026-07-04'); // Saturday
@@ -19,7 +19,10 @@ it('skips weekends and does not call NSE', function () {
     Http::assertNothingSent();
 });
 
-it('returns failed when NSE returns non-200', function () {
+it('returns failed when Yahoo Finance returns non-200', function () {
+    $stock = Stock::factory()->create(['nse_symbol' => 'RELIANCE', 'is_active' => true]);
+    StockHolding::factory()->create(['stock_id' => $stock->id, 'quantity' => 10]);
+
     Http::fake(['*' => Http::response('', 503)]);
 
     $monday = Carbon::parse('2026-07-07');
