@@ -5,6 +5,7 @@ use App\Http\Controllers\PlatformController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/api/stocks.php';
+require __DIR__.'/api/admin.php';
 
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);

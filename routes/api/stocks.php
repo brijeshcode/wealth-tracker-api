@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Stocks\StockHoldingController;
+use App\Http\Controllers\Stocks\StockImportController;
 use App\Http\Controllers\Stocks\StockLotController;
 use App\Http\Controllers\Stocks\StockMasterController;
 use App\Http\Controllers\Stocks\StockTaxController;
@@ -27,4 +28,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('stock-transactions',                           [StockTransactionController::class, 'store']);
     Route::put('stock-transactions/{transaction}',              [StockTransactionController::class, 'update']);
     Route::delete('stock-transactions/{transaction}',           [StockTransactionController::class, 'destroy']);
+
+    // Import
+    Route::post('stock-transactions/import/preview', [StockImportController::class, 'preview']);
+    Route::post('stock-transactions/import/confirm', [StockImportController::class, 'confirm']);
 });

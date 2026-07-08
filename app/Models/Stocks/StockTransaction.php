@@ -37,7 +37,7 @@ class StockTransaction extends Model
             'quantity'         => 'decimal:4',
             'price_per_unit'   => 'decimal:4',
             'amount'           => 'decimal:2',
-            'transaction_date' => 'date',
+            'transaction_date' => 'datetime',
         ];
     }
 

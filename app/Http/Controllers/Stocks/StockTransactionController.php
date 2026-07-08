@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Stocks;
 
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
-use App\Models\Holding;
 use App\Models\Stocks\StockHolding;
 use App\Models\Stocks\StockTransaction;
 use App\Services\Stocks\FifoService;
 use App\Services\Stocks\HoldingsCalculator;
+use App\Services\Stocks\StockHoldingResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,8 +16,9 @@ use Illuminate\Support\Facades\DB;
 class StockTransactionController extends Controller
 {
     public function __construct(
-        private HoldingsCalculator $calculator,
-        private FifoService $fifo,
+        private HoldingsCalculator   $calculator,
+        private FifoService          $fifo,
+        private StockHoldingResolver $holdingResolver,
     ) {}
 
     public function index(Request $request, StockHolding $stockHolding): JsonResponse
@@ -40,7 +41,7 @@ class StockTransactionController extends Controller
             'type'             => ['required', 'in:buy,sell,dividend,bonus,split'],
             'quantity'         => ['nullable', 'numeric', 'min:0.0001'],
             'price_per_unit'   => ['nullable', 'numeric', 'min:0'],
-            'transaction_date' => ['required', 'date'],
+            'transaction_date' => ['required', 'date_format:Y-m-d,Y-m-d H:i:s'],
             'source'           => ['nullable', 'in:manual,csv_import,api_sync'],
             'reference'        => ['nullable', 'string', 'max:255'],
             // Only applied when a new holding is created
@@ -55,7 +56,15 @@ class StockTransactionController extends Controller
         }
 
         $transaction = DB::transaction(function () use ($validated, $request) {
-            $stockHolding = $this->findOrCreateHolding($request->user()->id, $validated);
+            $stockHolding = $this->holdingResolver->resolve(
+                userId:          $request->user()->id,
+                stockId:         $validated['stock_id'],
+                exchange:        $validated['exchange'],
+                platformId:      $validated['platform_id'],
+                transactionDate: $validated['transaction_date'],
+                nickname:        $validated['nickname'] ?? null,
+                notes:           $validated['notes'] ?? null,
+            );
 
             $txn = $stockHolding->transactions()->create([
                 'type'             => $validated['type'],
@@ -168,37 +177,4 @@ class StockTransactionController extends Controller
         return ApiResponse::successMessage('Transaction deleted');
     }
 
-    private function findOrCreateHolding(int $userId, array $data): StockHolding
-    {
-        $existing = StockHolding::where('user_id', $userId)
-            ->where('stock_id', $data['stock_id'])
-            ->where('exchange', $data['exchange'])
-            ->whereHas('holding', fn ($q) => $q->where('platform_id', $data['platform_id']))
-            ->first();
-
-        if ($existing) {
-            return $existing;
-        }
-
-        $parent = Holding::create([
-            'user_id'          => $userId,
-            'platform_id'      => $data['platform_id'],
-            'type'             => 'stock',
-            'status'           => 'active',
-            'principal_amount' => 0,
-            'current_value'    => 0,
-            'start_date'       => $data['transaction_date'],
-            'nickname'         => $data['nickname'] ?? null,
-            'notes'            => $data['notes'] ?? null,
-        ]);
-
-        return StockHolding::create([
-            'holding_id'    => $parent->id,
-            'user_id'       => $userId,
-            'stock_id'      => $data['stock_id'],
-            'exchange'      => $data['exchange'],
-            'quantity'      => 0,
-            'avg_buy_price' => 0,
-        ]);
-    }
 }
