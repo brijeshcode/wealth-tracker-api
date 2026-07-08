@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\StockMasterController;
+use App\Http\Controllers\Admin\StockPriceController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
@@ -15,5 +16,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::post('stocks/import-nse',             [StockMasterController::class, 'importNse']);
     Route::post('stocks/import-nse-etf',         [StockMasterController::class, 'importNseEtf']); // build after confirming ETF CSV format
     Route::post('stocks/upsert',                 [StockMasterController::class, 'upsert']);
+
+    // Stock price sync
+    Route::post('stocks/sync-prices',          [StockPriceController::class, 'sync']);
+    Route::post('stocks/sync-prices/backfill', [StockPriceController::class, 'backfill']);
+    Route::get('stocks/sync-logs',             [StockPriceController::class, 'logs']);
 
 });

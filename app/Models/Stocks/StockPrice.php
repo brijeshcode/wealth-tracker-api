@@ -15,6 +15,7 @@ class StockPrice extends Model
     protected $fillable = [
         'stock_id',
         'price_date',
+        'period',
         'close_price',
         'volume',
     ];
