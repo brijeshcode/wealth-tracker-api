@@ -24,10 +24,22 @@ class StockPriceSyncService
             return $this->log($date, $triggeredBy, 'skipped', 0, 'No active holdings to update');
         }
 
+        $existingIds = StockPrice::where('price_date', $date->toDateString())
+            ->where('period', 'daily')
+            ->whereIn('stock_id', $heldStocks->keys())
+            ->pluck('stock_id')
+            ->all();
+
+        $missingStocks = $heldStocks->except($existingIds);
+
+        if ($missingStocks->isEmpty()) {
+            return $this->log($date, $triggeredBy, 'skipped', count($existingIds), 'Price data already exists for this date');
+        }
+
         $upserts = [];
         $errors  = [];
 
-        foreach ($heldStocks as $stockId => $symbol) {
+        foreach ($missingStocks as $stockId => $symbol) {
             try {
                 $price = $this->fetchYahooPrice($symbol, $date);
                 if ($price !== null) {
