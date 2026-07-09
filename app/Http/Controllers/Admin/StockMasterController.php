@@ -5,73 +5,35 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
 use App\Models\Stocks\Stock;
+use App\Services\Stocks\NseStockImportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use League\Csv\Reader;
 
 class StockMasterController extends Controller
 {
+    public function __construct(private NseStockImportService $importService) {}
+
     public function importNse(Request $request): JsonResponse
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:10240'],
         ]);
 
-        $path = $request->file('file')->getRealPath();
-        $csv  = Reader::createFromString(file_get_contents($path));
-        $csv->setHeaderOffset(0);
+        $result = $this->importService->importFromPath($request->file('file')->getRealPath());
 
-        $inserted = 0;
-        $updated  = 0;
-        $skipped  = 0;
+        return ApiResponse::send('NSE stock master updated', 200, $result);
+    }
 
-        foreach ($csv->getRecords() as $raw) {
-            // NSE CSV has leading spaces in column names after the first — normalise all keys
-            $row = array_combine(array_map('trim', array_keys($raw)), array_values($raw));
-
-            if (strtoupper(trim($row['SERIES'] ?? '')) !== 'EQ') {
-                $skipped++;
-                continue;
-            }
-
-            $isin   = trim($row['ISIN NUMBER'] ?? '');
-            $symbol = strtoupper(trim($row['SYMBOL'] ?? ''));
-            $name   = trim($row['NAME OF COMPANY'] ?? '');
-
-            if (!$isin || !$symbol) {
-                $skipped++;
-                continue;
-            }
-
-            $existing = Stock::withTrashed()->where('isin', $isin)->first();
-
-            if ($existing) {
-                $existing->update([
-                    'company_name' => $name,
-                    'nse_symbol'   => $symbol,
-                    'bse_symbol'   => $existing->bse_symbol ?? $symbol,
-                    'is_active'    => true,
-                    'deleted_at'   => null,
-                ]);
-                $updated++;
-            } else {
-                Stock::create([
-                    'isin'         => $isin,
-                    'company_name' => $name,
-                    'nse_symbol'   => $symbol,
-                    'bse_symbol'   => $symbol,
-                    'is_active'    => true,
-                ]);
-                $inserted++;
-            }
-        }
-
-        return ApiResponse::send('NSE stock master updated', 200, [
-            'inserted' => $inserted,
-            'updated'  => $updated,
-            'skipped'  => $skipped,
+    public function importNseEtf(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:10240'],
         ]);
+
+        $result = $this->importService->importEtfFromPath($request->file('file')->getRealPath());
+
+        return ApiResponse::send('NSE ETF master updated', 200, $result);
     }
 
     public function index(Request $request): JsonResponse

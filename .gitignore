@@ -46,5 +46,9 @@ CLAUDE.md
 # Claude memory (local only)
 /memory
 
+# NSE stock master CSV — too large to commit; place manually in database/seeders/data/
+database/seeders/data/EQUITY_L.csv
+database/seeders/data/eq_etfseclist.csv
+
 # Local docs / planning notes (architecture.md is the source of truth)
 /docs

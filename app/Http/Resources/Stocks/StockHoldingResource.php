@@ -9,14 +9,34 @@ class StockHoldingResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $quantity    = (float) $this->quantity;
+        $avgBuy      = (float) $this->avg_buy_price;
+        $costBasis   = $quantity * $avgBuy;
         $latestPrice = $this->stock?->latestPrice;
+
+        $currentPrice = $latestPrice ? (float) $latestPrice->close_price : null;
+        $priceDate    = $latestPrice?->price_date?->toDateString();
+        $currentValue = $currentPrice !== null ? round($quantity * $currentPrice, 2) : null;
+        $pnl          = $currentValue !== null ? round($currentValue - $costBasis, 2) : null;
+        $pnlPct       = ($costBasis > 0 && $pnl !== null)
+            ? round(($pnl / $costBasis) * 100, 2)
+            : null;
 
         return [
             'id'            => $this->id,
             'stock_id'      => $this->stock_id,
             'exchange'      => $this->exchange,
-            'quantity'      => (float) $this->quantity,
-            'avg_buy_price' => (float) $this->avg_buy_price,
+            'quantity'      => $quantity,
+            'avg_buy_price' => round($avgBuy, 4),
+            'cost_basis'    => round($costBasis, 2),
+
+            'valuation' => [
+                'current_price'      => $currentPrice,
+                'price_date'         => $priceDate,
+                'current_value'      => $currentValue,
+                'unrealized_pnl'     => $pnl,
+                'unrealized_pnl_pct' => $pnlPct,
+            ],
 
             'holding' => [
                 'id'               => $this->holding->id,
@@ -35,13 +55,7 @@ class StockHoldingResource extends JsonResource
                 'id'           => $this->stock->id,
                 'company_name' => $this->stock->company_name,
                 'nse_symbol'   => $this->stock->nse_symbol,
-                'latest_price' => $latestPrice ? [
-                    'price'          => (float) $latestPrice->price,
-                    'price_date'     => $latestPrice->price_date,
-                    'change_percent' => $latestPrice->change_percent !== null
-                        ? (float) $latestPrice->change_percent
-                        : null,
-                ] : null,
+                'isin'         => $this->stock->isin,
             ],
         ];
     }
